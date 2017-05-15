@@ -1,0 +1,5 @@
+[run]
+source = brpc
+omit =
+     site-packages
+     tests
