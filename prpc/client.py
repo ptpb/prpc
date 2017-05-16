@@ -2,47 +2,62 @@ import asyncio
 
 import structlog
 
-from prpc.transport import MsgpackTransport
+from prpc.protocol import base, msgpack
 
 
 log = structlog.get_logger()
 
+default_protocol = msgpack.MsgpackProtocol
+
 
 class ProtocolClient(asyncio.Protocol):
-    def __init__(self, rpc_transport=MsgpackTransport):
-        self.rpc_transport = rpc_transport()
-        self.transport = None
+    def __init__(self, protocol_factory=default_protocol):
+        self.protocol = protocol_factory()
 
         self.futures = {}
 
     def connection_made(self, transport):
         self.transport = transport
+        peername = transport.get_extra_info('peername')
+        log.debug('connection_made', peername=peername)
 
     def data_received(self, data):
-        for msg in self.rpc_transport.feed(data):
-            self.handle_msg(msg)
+        for message in self.protocol.feed(data):
+            self.handle_message(message)
 
-    def handle_msg(self, msg):
-        reply = self.rpc_transport.deserialize_reply(msg)
+    def handle_message(self, message):
+        assert isinstance(message, base.Response)
 
-        log.debug('handle_msg', msg_id=str(reply.uuid), return_value=reply.obj)
+        log.debug('handle_message', message=message)
 
-        if reply.uuid in self.futures:
-            self.futures[reply.uuid].set_result(reply.obj)
-            del self.futures[reply.uuid]
+        if message.id in self.futures:
+            # fixme: handle errors
+            self.futures[message.id].set_result(message.result)
+            del self.futures[message.id]
 
-    def cast(self, method_name, *args, **kwargs):
-        msg, _ = self.rpc_transport.serialize_call(method_name, *args, **kwargs)
-        self.transport.write(msg)
+    def cast(self, method, *args, **kwargs):
+        message = base.Notification(
+            method=method,
+            params=args,
+            kparams=kwargs
+        )
 
-    async def call(self, method_name, *args, **kwargs):
-        msg, uuid = self.rpc_transport.serialize_call(method_name, *args, **kwargs)
+        data = self.protocol.pack(message)
+        self.transport.write(data)
+
+    async def call(self, method, *args, **kwargs):
+        message = base.Request(
+            method=method,
+            params=args,
+            kparams=kwargs
+        )
+
+        data = self.protocol.pack(message)
 
         future = asyncio.Future()
-        self.futures[uuid] = future
+        self.futures[message.id] = future
 
-        # only write msg after future is registered, to avoid race
-        self.transport.write(msg)
+        self.transport.write(data)
 
         return await future
 
@@ -62,7 +77,6 @@ class ClientFactory:
         # fixme: maybe we don't actually want to do this?
         connection = self.loop.run_until_complete(coro)
 
-        uri = 'prpc://{host}:{port}'.format(host=host, port=port)
-        log.info('connected_to', uri=uri)
+        #uri = 'prpc://{host}:{port}'.format(host=host, port=port)
 
         return client

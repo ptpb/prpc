@@ -2,16 +2,18 @@ import asyncio
 
 import structlog
 
-from prpc.transport import MsgpackTransport
+from prpc.protocol import msgpack, base
 
 
 log = structlog.get_logger()
 
+default_protocol = msgpack.MsgpackProtocol
+
 
 class ProtocolServer(asyncio.Protocol):
-    def __init__(self, application, rpc_transport=MsgpackTransport):
+    def __init__(self, application, protocol_factory=default_protocol):
         self.application = application
-        self.rpc_transport = rpc_transport()
+        self.protocol = protocol_factory()
 
     def connection_made(self, transport):
         self.transport = transport
@@ -19,25 +21,38 @@ class ProtocolServer(asyncio.Protocol):
         log.debug('connection_made', peername=peername)
 
     def data_received(self, data):
-        for msg in self.rpc_transport.feed(data):
-            self.handle_msg(msg)
+        for message in self.protocol.feed(data):
 
-    def handle_msg(self, msg):
-        call = self.rpc_transport.deserialize_call(msg)
+            # fixme: handle exceptions
+            result = self.handle_message(message)
+            self.handle_result(message, result)
 
-        log.debug('rpc_call', msg_id=str(call.uuid),
-                  rpc_method=call.method_name,
-                  rpc_args=(call.args, call.kwargs))
-                  #rpc_kwargs=call.kwargs)
+    def handle_message(self, message):
+        assert not isinstance(message, base.Response)
 
-        cb = self.application.handle_method
-        ret = self.rpc_transport.apply_call(call, cb)
+        log.debug('handle_message', message=message)
 
-        log.debug('rpc_call_return', msg_id=str(call.uuid), return_value=ret)
+        result = self.application.handle_method(
+            message.method,
+            *message.params,
+            **message.kparams,
+        )
 
-        reply = self.rpc_transport.serialize_reply(call, ret)
+        return result
 
-        self.transport.write(reply)
+
+    def handle_result(self, message, result):
+        if isinstance(message, base.Request):
+            message = base.Response(
+                id=message.id,
+                result=result,
+            )
+
+            log.debug('handle_result', message=message)
+
+            data = self.protocol.pack(message)
+
+            self.transport.write(data)
 
 
 def run_app(application, host='::1', port=12345):
