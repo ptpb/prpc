@@ -1,7 +1,7 @@
 import enum
 from abc import ABCMeta, abstractmethod
 
-from attr import attrib, attributes
+from attr import attrib, attributes, astuple
 
 
 class MessageType(enum.IntEnum):
@@ -108,6 +108,4 @@ class BaseProtocol(metaclass=ABCMeta):
             message tuple
         """
 
-        message_ = [getattr(message, attribute.name) for attribute in message.__attrs_attrs__]
-
-        return [message.type] + message_
+        return (message.type,) + astuple(message)

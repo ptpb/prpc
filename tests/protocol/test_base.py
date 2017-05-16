@@ -7,15 +7,15 @@ from prpc.protocol import base
 
 test_data = [
     (
-        [base.MessageType.request, 1, 2, 3, 4],
+        (base.MessageType.request, 1, 2, 3, 4),
         base.Request(id=1, method=2, params=3, kparams=4)
     ),
     (
-        [base.MessageType.notification, 5, 6, 7],
+        (base.MessageType.notification, 5, 6, 7),
         base.Notification(method=5, params=6, kparams=7)
     ),
     (
-        [base.MessageType.response, 8, 9, 10],
+        (base.MessageType.response, 8, 9, 10),
         base.Response(id=8, result=9, error=10)
     )
 ]
