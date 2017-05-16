@@ -1,3 +1,4 @@
+import uuid
 import enum
 from abc import ABCMeta, abstractmethod
 
@@ -15,29 +16,40 @@ class BaseMessage(metaclass=ABCMeta):
     type = MessageType.invalid
 
 
+def init_id(cls):
+    def post_init_(self):
+        if self.id == None:
+            self.id = uuid.uuid4()
+
+    cls.__attrs_post_init__ = post_init_
+    return cls
+
+
 @attributes
+@init_id
 class Request:
     type = MessageType.request
-    id = attrib()
-    method = attrib()
-    params = attrib()
-    kparams = attrib()
+    id = attrib(default=None)
+    method = attrib(default=None)
+    params = attrib(default=tuple())
+    kparams = attrib(default=dict())
 
 
 @attributes
 class Notification:
     type = MessageType.notification
-    method = attrib()
-    params = attrib()
-    kparams = attrib()
+    method = attrib(default=None)
+    params = attrib(default=tuple())
+    kparams = attrib(default=dict())
 
 
 @attributes
+@init_id
 class Response:
     type = MessageType.response
-    id = attrib()
-    result = attrib()
-    error = attrib()
+    id = attrib(default=None)
+    result = attrib(default=None)
+    error = attrib(default=None)
 
 
 BaseMessage.register(Request)

@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -48,3 +49,11 @@ def test_decode_message_unsupported(protocol):
         protocol.decode_message([message_type])
 
     assert str(message_type) in str(e.value)
+
+
+@pytest.mark.parametrize("cls", [base.Request, base.Response])
+def test_id_init(cls):
+
+    message = cls(id=None)
+
+    assert isinstance(message.id, uuid.UUID)
