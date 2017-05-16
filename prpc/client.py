@@ -75,7 +75,7 @@ class ClientFactory:
 
         coro = self.loop.create_connection(lambda: client, host, port)
         # fixme: maybe we don't actually want to do this?
-        connection = self.loop.run_until_complete(coro)
+        self.loop.run_until_complete(coro)
 
         #uri = 'prpc://{host}:{port}'.format(host=host, port=port)
 

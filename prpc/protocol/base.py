@@ -1,8 +1,8 @@
-import uuid
 import enum
+import uuid
 from abc import ABCMeta, abstractmethod
 
-from attr import attrib, attributes, astuple
+from attr import astuple, attrib, attributes
 
 
 class MessageType(enum.IntEnum):
@@ -18,7 +18,7 @@ class BaseMessage(metaclass=ABCMeta):
 
 def init_id(cls):
     def post_init_(self):
-        if self.id == None:
+        if self.id is None:
             self.id = uuid.uuid4()
 
     cls.__attrs_post_init__ = post_init_

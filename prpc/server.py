@@ -2,7 +2,7 @@ import asyncio
 
 import structlog
 
-from prpc.protocol import msgpack, base
+from prpc.protocol import base, msgpack
 
 
 log = structlog.get_logger()
@@ -39,7 +39,6 @@ class ProtocolServer(asyncio.Protocol):
         )
 
         return result
-
 
     def handle_result(self, message, result):
         if isinstance(message, base.Request):
