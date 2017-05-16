@@ -52,7 +52,7 @@ message_type_map = {
 }
 
 
-class BaseTransport(metaclass=ABCMeta):
+class BaseProtocol(metaclass=ABCMeta):
 
     @abstractmethod
     def feed(self, data):

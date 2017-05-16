@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from prpc.transport import base
+from prpc.protocol import base
 
 
 test_data = [
@@ -22,29 +22,29 @@ test_data = [
 
 
 @pytest.fixture
-@patch.multiple(base.BaseTransport, __abstractmethods__=set())
-def transport():
+@patch.multiple(base.BaseProtocol, __abstractmethods__=set())
+def protocol():
 
-    return base.BaseTransport()
-
-
-@pytest.mark.parametrize("message_tuple,message", test_data)
-def test_decode_message(transport, message_tuple, message):
-
-    assert transport.decode_message(message_tuple) == message
+    return base.BaseProtocol()
 
 
 @pytest.mark.parametrize("message_tuple,message", test_data)
-def test_encode_message(transport, message_tuple, message):
+def test_decode_message(protocol, message_tuple, message):
 
-    assert transport.encode_message(message) == message_tuple
+    assert protocol.decode_message(message_tuple) == message
 
 
-def test_decode_message_unsupported(transport):
+@pytest.mark.parametrize("message_tuple,message", test_data)
+def test_encode_message(protocol, message_tuple, message):
+
+    assert protocol.encode_message(message) == message_tuple
+
+
+def test_decode_message_unsupported(protocol):
 
     message_type = int(base.MessageType.invalid)
 
     with pytest.raises(NotImplementedError) as e:
-        transport.decode_message([message_type])
+        protocol.decode_message([message_type])
 
     assert str(message_type) in str(e.value)

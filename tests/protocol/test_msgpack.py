@@ -1,6 +1,6 @@
 import pytest
 
-from prpc.transport import base, msgpack
+from prpc.protocol import base, msgpack
 
 
 test_data = [
@@ -20,13 +20,13 @@ test_data = [
 
 
 @pytest.fixture
-def transport():
-    return msgpack.MsgpackTransport()
+def protocol():
+    return msgpack.MsgpackProtocol()
 
 
 @pytest.mark.parametrize("data,message", test_data)
-def test_feed_single(transport, data, message):
-    gen = transport.feed(data)
+def test_feed_single(protocol, data, message):
+    gen = protocol.feed(data)
     assert next(gen) == message
 
     with pytest.raises(StopIteration):
@@ -34,15 +34,15 @@ def test_feed_single(transport, data, message):
 
 
 @pytest.mark.parametrize("data,message", test_data)
-def test_pack_single(transport, data, message):
+def test_pack_single(protocol, data, message):
 
-    assert transport.pack(message) == data
+    assert protocol.pack(message) == data
 
 
-def test_feed_multiple(transport):
+def test_feed_multiple(protocol):
     data = b''.join(data for data, _ in test_data)
 
-    gen = transport.feed(data)
+    gen = protocol.feed(data)
 
     for _, message in test_data:
         assert next(gen) == message

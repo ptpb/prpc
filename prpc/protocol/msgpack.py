@@ -1,9 +1,9 @@
 from msgpack_ext import msgpack
 
-from prpc.transport.base import BaseTransport
+from prpc.protocol.base import BaseProtocol
 
 
-class MsgpackTransport(BaseTransport):
+class MsgpackProtocol(BaseProtocol):
     def __init__(self):
         self.unpacker = msgpack.Unpacker()
 
