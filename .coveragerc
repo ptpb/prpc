@@ -1,5 +1,5 @@
 [run]
-source = brpc
+source = prpc
 omit =
      site-packages
      tests

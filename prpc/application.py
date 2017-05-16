@@ -1,4 +1,4 @@
-from brpc.service import ServiceMethodDescriptor
+from prpc.service import ServiceMethodDescriptor
 
 
 class Application:

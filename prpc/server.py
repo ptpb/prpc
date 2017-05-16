@@ -1,6 +1,6 @@
 import asyncio
 
-from brpc.transport import MsgpackTransport
+from prpc.transport import MsgpackTransport
 
 
 class ProtocolServer(asyncio.Protocol):

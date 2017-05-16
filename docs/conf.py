@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# brpc documentation build configuration file
+# prpc documentation build configuration file
 
 import alabaster
 
@@ -19,10 +19,10 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # general project information
-project = 'brpc'
+project = 'prpc'
 copyright = '2017, Zack Buhman'
-#version = brpc.__version__
-#release = brpc.__version__
+#version = prpc.__version__
+#release = prpc.__version__
 
 # styles
 pygments_style = 'sphinx'
@@ -35,22 +35,22 @@ html_theme_path = [alabaster.get_path()]
 html_theme_options = {
     'description': 'buh rpc',
     'github_user': 'ptpb',
-    'github_repo': 'brpc',
+    'github_repo': 'prpc',
     'github_button': True,
     'github_type': 'star',
     'github_banner': True,
     'shield_list': [
         {
-            'image': 'https://img.shields.io/circleci/project/github/ptpb/brpc.svg',
-            'target': 'https://circleci.com/gh/ptpb/brpc'
+            'image': 'https://img.shields.io/circleci/project/github/ptpb/prpc.svg',
+            'target': 'https://circleci.com/gh/ptpb/prpc'
         },
         {
-            'image': 'https://img.shields.io/codecov/c/github/ptpb/brpc.svg',
-            'target': 'https://codecov.io/gh/ptpb/brpc'
+            'image': 'https://img.shields.io/codecov/c/github/ptpb/prpc.svg',
+            'target': 'https://codecov.io/gh/ptpb/prpc'
         },
         {
-            'image': 'https://img.shields.io/pypi/v/brpc.svg',
-            'target': 'https://pypi.org/project/brpc/'
+            'image': 'https://img.shields.io/pypi/v/prpc.svg',
+            'target': 'https://pypi.org/project/prpc/'
         }
     ]
 }

@@ -1,29 +1,28 @@
 from functools import partial
+from uuid import uuid4
 
-import msgpack
-
-
-packb = partial(msgpack.packb, use_bin_type=True)
-unpackb = partial(msgpack.unpackb, encoding='utf-8')
+from msgpack_ext import msgpack
 
 
 class MsgpackTransport:
     @staticmethod
     def serialize_call(method_name, *args, **kwargs):
         print('serialize', method_name, args, kwargs)
+        uuid = uuid4()
 
-        msg = packb([
+        msg = msgpack.packb([
+            uuid,
             method_name,
             args,
             kwargs
         ])
 
-        return msg
+        return msg, uuid
 
     @staticmethod
     def method_call(msg, cb):
-        method_name, args, kwargs = unpackb(msg)
+        uuid, method_name, args, kwargs = msgpack.unpackb(msg)
 
-        print(method_name, args, kwargs)
+        print(uuid, method_name, args, kwargs)
 
         return cb(method_name, *args, **kwargs)

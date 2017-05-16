@@ -1,7 +1,7 @@
-from brpc.service import ServiceBase
-from brpc.decorator import rpc
-from brpc.server import run_app
-from brpc.application import Application
+from prpc.service import ServiceBase
+from prpc.decorator import rpc
+from prpc.server import run_app
+from prpc.application import Application
 
 
 class Service(ServiceBase):
