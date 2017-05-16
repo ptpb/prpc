@@ -20,9 +20,16 @@ ReplyMessage = namedtuple('ReplyMessage', [
 
 
 class MsgpackTransport:
+    def __init__(self):
+        self.unpacker = msgpack.Unpacker()
+
+    def feed(self, data):
+        self.unpacker.feed(data)
+
+        return self.unpacker
+
     @staticmethod
     def serialize_call(method_name, *args, **kwargs):
-        print('serialize', method_name, args, kwargs)
         uuid = uuid4()
 
         msg = msgpack.packb([
@@ -35,10 +42,10 @@ class MsgpackTransport:
         return msg, uuid
 
     @staticmethod
-    def deserialize_call(data):
-        msg = CallMessage(*msgpack.unpackb(data))
+    def deserialize_call(msg):
+        call = CallMessage(*msg)
 
-        return msg
+        return call
 
     @staticmethod
     def apply_call(msg, cb):
@@ -56,7 +63,7 @@ class MsgpackTransport:
         return msg
 
     @staticmethod
-    def deserialize_reply(data):
-        msg = ReplyMessage(*msgpack.unpackb(data))
+    def deserialize_reply(msg):
+        reply = ReplyMessage(*msg)
 
-        return msg
+        return reply

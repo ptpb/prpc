@@ -1,11 +1,16 @@
 import asyncio
 
+import structlog
+
 from prpc.transport import MsgpackTransport
+
+
+log = structlog.get_logger()
 
 
 class ProtocolClient(asyncio.Protocol):
     def __init__(self, rpc_transport=MsgpackTransport):
-        self.rpc_transport = rpc_transport
+        self.rpc_transport = rpc_transport()
         self.transport = None
 
         self.futures = {}
@@ -14,7 +19,14 @@ class ProtocolClient(asyncio.Protocol):
         self.transport = transport
 
     def data_received(self, data):
-        reply = self.rpc_transport.deserialize_reply(data)
+        for msg in self.rpc_transport.feed(data):
+            self.handle_msg(msg)
+
+    def handle_msg(self, msg):
+        reply = self.rpc_transport.deserialize_reply(msg)
+
+        log.debug('handle_msg', msg_id=str(reply.uuid), return_value=reply.obj)
+
         if reply.uuid in self.futures:
             self.futures[reply.uuid].set_result(reply.obj)
             del self.futures[reply.uuid]
@@ -46,8 +58,11 @@ class ClientFactory:
     def connect(self, host, port):
         client = self.protocol()
 
-        connect = self.loop.create_connection(lambda: client, host, port)
+        coro = self.loop.create_connection(lambda: client, host, port)
         # fixme: maybe we don't actually want to do this?
-        self.loop.run_until_complete(connect)
+        connection = self.loop.run_until_complete(coro)
+
+        uri = 'prpc://{host}:{port}'.format(host=host, port=port)
+        log.info('connected_to', uri=uri)
 
         return client

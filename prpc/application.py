@@ -1,4 +1,9 @@
+import structlog
+
 from prpc.service import ServiceMethodDescriptor
+
+
+log = structlog.get_logger()
 
 
 class Application:
@@ -17,7 +22,9 @@ class Application:
                     function=function,
                     service=service
                 )
-                print(descriptor)
+
+                log.debug("registered_service", rpc_method=method_name, service=service)
+
                 self.rpc_methods[method_name] = descriptor
 
     def handle_method(self, method_name, *args, **kwargs):
