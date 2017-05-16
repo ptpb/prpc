@@ -44,7 +44,6 @@ class Notification:
 
 
 @attributes
-@init_id
 class Response:
     type = MessageType.response
     id = attrib(default=None)
