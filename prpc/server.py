@@ -13,10 +13,16 @@ class ProtocolServer(asyncio.Protocol):
         print('connection')
 
     def data_received(self, data):
-        print('rec')
+        call = self.rpc_transport.deserialize_call(data)
         cb = self.application.handle_method
-        ret = self.rpc_transport.method_call(data, cb)
-        print('RET', ret)
+
+        ret = self.rpc_transport.apply_call(call, cb)
+
+        print('apply return', ret)
+
+        reply = self.rpc_transport.serialize_reply(call, ret)
+
+        self.transport.write(reply)
 
 
 def run_app(application):

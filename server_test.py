@@ -9,6 +9,8 @@ class Service(ServiceBase):
     def foo(self, *args, **kwargs):
         print('foo called', self, args, kwargs)
 
+        return {'my': 'object'}
+
 
 app = Application([Service])
 run_app(app)

@@ -1,7 +1,22 @@
+from collections import namedtuple
 from functools import partial
 from uuid import uuid4
 
 from msgpack_ext import msgpack
+
+
+CallMessage = namedtuple('CallMessage', [
+    'uuid',
+    'method_name',
+    'args',
+    'kwargs'
+])
+
+
+ReplyMessage = namedtuple('ReplyMessage', [
+    'uuid',
+    'obj'
+])
 
 
 class MsgpackTransport:
@@ -20,9 +35,28 @@ class MsgpackTransport:
         return msg, uuid
 
     @staticmethod
-    def method_call(msg, cb):
-        uuid, method_name, args, kwargs = msgpack.unpackb(msg)
+    def deserialize_call(data):
+        msg = CallMessage(*msgpack.unpackb(data))
 
-        print(uuid, method_name, args, kwargs)
+        return msg
 
-        return cb(method_name, *args, **kwargs)
+    @staticmethod
+    def apply_call(msg, cb):
+        ret = cb(msg.method_name, *msg.args, **msg.kwargs)
+
+        return ret
+
+    @staticmethod
+    def serialize_reply(call_msg, obj):
+        msg = msgpack.packb([
+            call_msg.uuid,
+            obj
+        ])
+
+        return msg
+
+    @staticmethod
+    def deserialize_reply(data):
+        msg = ReplyMessage(*msgpack.unpackb(data))
+
+        return msg
