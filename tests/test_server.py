@@ -8,23 +8,6 @@ from prpc.server import ProtocolServer
 
 
 @pytest.fixture
-def buf():
-    return []
-
-
-@pytest.fixture
-def transport(buf):
-    transport = mock.Mock()
-
-    def write(chunk):
-        buf.append(chunk)
-
-    transport.write.side_effect = write
-
-    return transport
-
-
-@pytest.fixture
 @patch.multiple(base.BaseProtocol, __abstractmethods__=set())
 def server(transport):
     application = mock.Mock()
@@ -54,6 +37,7 @@ def test_handle_message_request(buf, server):
     assert buf[0].result == sentinel.return_value
     assert buf[0].error is None
     assert buf[0].id == message.id
+    assert isinstance(buf[0], base.Response)
 
 
 def test_handle_message_notification(buf, server):

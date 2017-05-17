@@ -35,6 +35,12 @@ class ProtocolClient(asyncio.Protocol):
             self.futures[message.id].set_result(message.result)
             del self.futures[message.id]
 
+    def resolve_response(self, message_id, future_factory=asyncio.Future):
+        future = future_factory()
+        self.futures[message_id] = future
+
+        return future
+
     def cast(self, method, *args, **kwargs):
         message = base.Notification(
             method=method,
@@ -54,8 +60,7 @@ class ProtocolClient(asyncio.Protocol):
 
         data = self.protocol.pack(message)
 
-        future = asyncio.Future()
-        self.futures[message.id] = future
+        future = self.resolve_response(message.id)
 
         self.transport.write(data)
 
