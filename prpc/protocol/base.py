@@ -76,7 +76,7 @@ class BaseProtocol(metaclass=ABCMeta):
             generator of zero or more messages
         """
 
-        pass  # pragma nocover
+        return [data]  # pragma: nocover
 
     @abstractmethod
     def pack(self, message):
@@ -89,7 +89,7 @@ class BaseProtocol(metaclass=ABCMeta):
             serialized message
         """
 
-        pass  # pragma nocover
+        return message  # pragma: nocover
 
     def decode_message(self, message_tuple):
         """unpack message tuple into a message object
