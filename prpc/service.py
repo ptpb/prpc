@@ -1,6 +1,11 @@
 from collections import namedtuple
 
 
+def rpc(func):
+    func._rpc = True
+    return func
+
+
 class ServiceMeta(type):
     def __init__(self, name, bases, attrs):
         super().__init__(name, bases, attrs)

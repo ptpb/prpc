@@ -1,5 +1,4 @@
-from prpc.service import ServiceBase
-from prpc.decorator import rpc
+from prpc.service import ServiceBase, rpc
 from prpc.server import run_app
 from prpc.application import Application
 
