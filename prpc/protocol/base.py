@@ -67,26 +67,26 @@ class BaseProtocol(metaclass=ABCMeta):
 
     @abstractmethod
     def feed(self, data):
-        """unpack raw data into individual message tuples
+        """unpack raw data into message objects
 
         Args:
-            data: stream of arbitrary bytes
+            data (bytes): stream of arbitrary bytes
 
-        Returns:
-            generator of zero or more messages
+        Yields:
+            BaseMessage: deserialized message
         """
 
         return [data]  # pragma: nocover
 
     @abstractmethod
     def pack(self, message):
-        """pack message tuple into protocol message
+        """pack message into protocol message
 
         Args:
-            message: concrete BaseMessage instance
+            message (BaseMessage): message
 
         Returns:
-            serialized message
+            bytes: serialized message
         """
 
         return message  # pragma: nocover
@@ -95,10 +95,10 @@ class BaseProtocol(metaclass=ABCMeta):
         """unpack message tuple into a message object
 
         Args:
-            message: tuple
+            message (tuple): tuple representation of a message
 
         Returns:
-            concrete BaseMessage instance
+            BaseMessage: object representation of a message
         """
 
         message_type, *message_ = message_tuple
@@ -113,10 +113,10 @@ class BaseProtocol(metaclass=ABCMeta):
         """pack message object into a message tuple
 
         Args:
-            message: concrete BaseMessage
+            message (BaseMessage): object representation of a message
 
         Returns:
-            message tuple
+            tuple: tuple representation of a message
         """
 
         return (message.type,) + astuple(message)
