@@ -4,6 +4,8 @@ from prpc.protocol.base import BaseProtocol
 
 
 class MsgpackProtocol(BaseProtocol):
+    message_size = 16 * 1024
+
     def __init__(self):
         self.unpacker = msgpack.Unpacker()
 

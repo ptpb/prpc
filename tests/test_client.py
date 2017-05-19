@@ -1,10 +1,9 @@
-import asyncio
-from unittest import mock
-from unittest.mock import patch, sentinel
+from unittest.mock import sentinel
+from asynctest import patch
 
 import pytest
 
-from prpc.client import ProtocolClient
+from prpc.client import Client, LibraryClient
 from prpc.protocol import base
 
 
@@ -12,45 +11,56 @@ from prpc.protocol import base
 @patch.multiple(base.BaseProtocol, __abstractmethods__=set())
 def client(transport):
     protocol = base.BaseProtocol
-    client = ProtocolClient(protocol)
-
-    client.connection_made(transport)
+    client = Client(transport, protocol)
 
     return client
 
 
-def test_handle_message_response(client):
+@pytest.fixture
+def library_client(client):
+    return LibraryClient(client)
+
+
+async def test_handle_response(client):
 
     message = base.Response(
         id=sentinel.id,
         result=sentinel.result,
     )
 
-    future = mock.Mock()
+    event = await client._resolve_request_init(message)
+    await client.handle_response(message)
+    result = await client._resolve_request_fini(message, event)
 
-    client.resolve_response(sentinel.id, lambda: future)
+    assert result == sentinel.result
+    assert sentinel.id not in client.request_events
 
-    client.data_received(message)
 
-    future.set_result.assert_called_once_with(
-        sentinel.result
+async def test_handle_request(buf, client):
+
+    message = base.Request(
+        id=sentinel.id
     )
 
-    assert client.futures == {}
+    await client.handle_request(message)
+
+    assert len(buf) == 1
+    assert buf[0].id == sentinel.id
 
 
-@pytest.mark.asyncio
-async def test_call(buf, client):
+async def test_call(buf, client, library_client):
 
-    coro = client.call(sentinel.method)
+    real_handle_request = client.handle_request
 
-    def resolve_response(*args, **kwargs):
-        future = asyncio.Future()
-        future.set_result(sentinel.result)
-        return future
+    async def handle_request(self, message):
+        await real_handle_request(message)
+        await client.handle_response(base.Response(
+            id=message.id,
+            result=sentinel.result,
+        ))
 
-    with patch.object(ProtocolClient, 'resolve_response', resolve_response):
-        result = await coro
+    with patch.object(Client, 'handle_request', handle_request):
+        result = await library_client.call(sentinel.method)
 
     assert result == sentinel.result
 
@@ -59,9 +69,9 @@ async def test_call(buf, client):
     assert isinstance(buf[0], base.Request)
 
 
-def test_cast(buf, client):
+async def test_cast(buf, library_client):
 
-    client.cast(sentinel.method)
+    await library_client.cast(sentinel.method)
 
     assert len(buf) == 1
     assert buf[0].method == sentinel.method
