@@ -1,5 +1,5 @@
 from unittest.mock import sentinel
-from asynctest import patch, mock
+from asynctest import mock, patch
 
 import pytest
 
@@ -51,7 +51,6 @@ async def test_handle_request(buf, client):
 
     assert len(buf) == 1
     assert buf[0].id == sentinel.id
-
 
 
 @patch.object(Client, 'resolve_request')
