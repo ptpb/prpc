@@ -26,19 +26,39 @@ def setattrr(obj, attr, value, ret):
     return ret
 
 
-async def test_handle_response(client):
+test_responses = [
+    base.Response(id=sentinel.id, result=sentinel.result),
+    base.Response(id=sentinel.id, error=sentinel.error),
+]
 
-    message = base.Response(
-        id=sentinel.id,
-        result=sentinel.result,
-    )
 
-    event = await client._resolve_request_init(message)
+@pytest.mark.parametrize("message", test_responses)
+async def test_handle_response(client, message):
+
+    event = mock.Mock()
+    client.request_events[sentinel.id] = event
+
     await client.handle_response(message)
-    result = await client._resolve_request_fini(message, event)
 
+    event.set.assert_called_once()
+    assert client.request_events[sentinel.id] == (message.result or message.error)
+
+
+@patch.object(Client, 'handle_request')
+async def test_resolve_request(mock_handle_request, client):
+
+    def side_effect(message):
+        client.request_events[message.id].set()
+        client.request_events[message.id] = sentinel.result
+
+    mock_handle_request.side_effect = side_effect
+
+    message = base.Request()
+
+    result = await client.resolve_request(message)
+
+    mock_handle_request.assert_called_once_with(message)
     assert result == sentinel.result
-    assert sentinel.id not in client.request_events
 
 
 async def test_handle_request(buf, client):
