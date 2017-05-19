@@ -30,8 +30,12 @@ class Client:
 
         event = self.request_events[message.id]
 
-        # fixme: handle exceptions
-        self.request_events[message.id] = message.result
+        assert message.result is not None or message.error is not None
+
+        if message.result is not None:
+            self.request_events[message.id] = message.result
+        if message.error is not None:
+            self.request_events[message.id] = message.error
 
         event.set()
 
@@ -51,6 +55,9 @@ class Client:
         await event.wait()
         result = self.request_events[message.id]
         del self.request_events[message.id]
+
+        if isinstance(result, BaseException):
+            raise result.__class__(result) from result
 
         return result
 

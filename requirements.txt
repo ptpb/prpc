@@ -1,4 +1,4 @@
 attrs>=16.3.0
-msgpack_ext>=0.1.1
+msgpack_ext>=0.1.2
 structlog>=17.2.0
 trio~=0.1.0

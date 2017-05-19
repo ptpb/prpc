@@ -19,13 +19,17 @@ class Server:
         for message in protocol.feed(data):
             assert not isinstance(message, base.Response)
 
-            # fixme: handle exceptions
-            result = await self.handle_message(message)
+            result = None
+            error = None
+            try:
+                result = await self.handle_message(message)
+            except Exception as e:
+                error = e
 
             if not isinstance(message, base.Request):
                 continue
 
-            await self.handle_response(message, result, protocol, transport)
+            await self.handle_response(message, result, error, protocol, transport)
 
         return data
 
@@ -40,10 +44,11 @@ class Server:
 
         return result
 
-    async def handle_response(self, message, result, protocol, transport):
+    async def handle_response(self, message, result, error, protocol, transport):
         response = base.Response(
             id=message.id,
             result=result,
+            error=error,
         )
 
         log.debug('handle_response', response=response)
