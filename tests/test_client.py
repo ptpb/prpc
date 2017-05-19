@@ -1,5 +1,5 @@
 from unittest.mock import sentinel
-from asynctest import patch
+from asynctest import patch, mock
 
 import pytest
 
@@ -19,6 +19,11 @@ def client(transport):
 @pytest.fixture
 def library_client(client):
     return LibraryClient(client)
+
+
+def setattrr(obj, attr, value, ret):
+    setattr(obj, attr, value)
+    return ret
 
 
 async def test_handle_response(client):
@@ -48,31 +53,27 @@ async def test_handle_request(buf, client):
     assert buf[0].id == sentinel.id
 
 
-async def test_call(buf, client, library_client):
 
-    real_handle_request = client.handle_request
+@patch.object(Client, 'resolve_request')
+async def test_call(mock_resolve_request, library_client):
+    args = mock.Mock()
+    mock_resolve_request.side_effect = lambda m: setattrr(args, 'message', m, sentinel.result)
 
-    async def handle_request(self, message):
-        await real_handle_request(message)
-        await client.handle_response(base.Response(
-            id=message.id,
-            result=sentinel.result,
-        ))
+    result = await library_client.call(sentinel.method)
 
-    with patch.object(Client, 'handle_request', handle_request):
-        result = await library_client.call(sentinel.method)
-
+    mock_resolve_request.assert_called_once()
+    assert isinstance(args.message, base.Request)
+    assert args.message.method == sentinel.method
     assert result == sentinel.result
 
-    assert len(buf) == 1
-    assert buf[0].method == sentinel.method
-    assert isinstance(buf[0], base.Request)
 
-
-async def test_cast(buf, library_client):
+@patch.object(Client, 'handle_request')
+async def test_cast(mock_handle_request, library_client):
+    args = mock.Mock()
+    mock_handle_request.side_effect = lambda m: setattr(args, 'message', m)
 
     await library_client.cast(sentinel.method)
 
-    assert len(buf) == 1
-    assert buf[0].method == sentinel.method
-    assert isinstance(buf[0], base.Notification)
+    mock_handle_request.assert_called_once()
+    assert isinstance(args.message, base.Notification)
+    assert args.message.method == sentinel.method
