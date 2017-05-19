@@ -1,16 +1,9 @@
-import asyncio
-
-from prpc.client import ClientFactory
+from prpc.client import run_client
 
 
-client = ClientFactory().connect('localhost', 12345)
-client.cast('__main__.foo', 'arg1', foo='bar')
-
-
-async def do_call():
+async def foo(client):
     res = await client.call('__main__.foo', 'arg1', foo='bar')
-    print('got res', res)
+    print('got', res)
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(do_call())
+run_client(foo, host='::1', port=12345)

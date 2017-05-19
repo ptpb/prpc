@@ -64,6 +64,7 @@ message_type_map = {
 
 
 class BaseProtocol(metaclass=ABCMeta):
+    message_size = None
 
     @abstractmethod
     def feed(self, data):

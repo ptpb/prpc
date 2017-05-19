@@ -1,35 +1,35 @@
-import asyncio
-
 import structlog
+import trio
 
 from prpc.protocol import base, msgpack
 
 
 log = structlog.get_logger()
-
 default_protocol = msgpack.MsgpackProtocol
 
 
-class ProtocolServer(asyncio.Protocol):
+class Server:
     def __init__(self, application, protocol_factory=default_protocol):
         self.application = application
-        self.protocol = protocol_factory()
+        self.protocol_factory = protocol_factory
 
-    def connection_made(self, transport):
-        self.transport = transport
-        peername = transport.get_extra_info('peername')
-        log.debug('connection_made', peername=peername)
+    async def handle_recv(self, transport, protocol):
+        data = await transport.recv(protocol.message_size)
 
-    def data_received(self, data):
-        for message in self.protocol.feed(data):
+        for message in protocol.feed(data):
+            assert not isinstance(message, base.Response)
 
             # fixme: handle exceptions
-            result = self.handle_message(message)
-            self.handle_result(message, result)
+            result = await self.handle_message(message)
 
-    def handle_message(self, message):
-        assert not isinstance(message, base.Response)
+            if not isinstance(message, base.Request):
+                continue
 
+            await self.handle_response(message, result, protocol, transport)
+
+        return data
+
+    async def handle_message(self, message):
         log.debug('handle_message', message=message)
 
         result = self.application.handle_method(
@@ -40,32 +40,46 @@ class ProtocolServer(asyncio.Protocol):
 
         return result
 
-    def handle_result(self, message, result):
-        if isinstance(message, base.Request):
-            message = base.Response(
-                id=message.id,
-                result=result,
-            )
+    async def handle_response(self, message, result, protocol, transport):
+        response = base.Response(
+            id=message.id,
+            result=result,
+        )
 
-            log.debug('handle_result', message=message)
+        log.debug('handle_response', response=response)
 
-            data = self.protocol.pack(message)
+        data = protocol.pack(response)
 
-            self.transport.write(data)
+        await transport.sendall(data)
+
+    async def __call__(self, transport):
+        peername = transport.getpeername()
+        log.debug('connection_made', peername=peername)
+
+        protocol = self.protocol_factory()
+
+        while True:
+            data = await self.handle_recv(transport, protocol)
+            if not data:
+                log.debug('connection_closed', peername=peername)
+                return
 
 
-def run_app(application, host='::1', port=12345):
-    protocol = ProtocolServer(application)
+async def _create_server(nursery, server):
+    with trio.socket.socket(trio.socket.AF_INET6) as listen:
+        listen.bind(('::1', 12345))
+        listen.listen()
 
-    loop = asyncio.get_event_loop()
-    coro = loop.create_server(lambda: protocol, host=host, port=port)
-    server = loop.run_until_complete(coro)
+        while True:
+            transport, _ = await listen.accept()
+            nursery.spawn(server, transport)
 
-    uris = ['{scheme}://{laddr[0]}:{laddr[1]}'.format(scheme='prpc',
-                                                      laddr=socket.getsockname())
 
-            for socket in server.sockets]
+async def create_server(server, *args):
+    async with trio.open_nursery() as nursery:
+        nursery.spawn(_create_server, nursery, server)
 
-    log.info('listening_on', uris=uris)
 
-    loop.run_forever()
+def run_app(application, protocol=default_protocol):
+    server = Server(application, protocol)
+    trio.run(create_server, server)

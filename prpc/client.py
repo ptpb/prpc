@@ -1,55 +1,91 @@
-import asyncio
-
 import structlog
+import trio
 
 from prpc.protocol import base, msgpack
 
 
 log = structlog.get_logger()
-
 default_protocol = msgpack.MsgpackProtocol
 
 
-class ProtocolClient(asyncio.Protocol):
-    def __init__(self, protocol_factory=default_protocol):
+class Client:
+    def __init__(self, transport, protocol_factory=default_protocol):
         self.protocol = protocol_factory()
-
-        self.futures = {}
-
-    def connection_made(self, transport):
         self.transport = transport
-        peername = transport.get_extra_info('peername')
-        log.debug('connection_made', peername=peername)
 
-    def data_received(self, data):
+        self.request_events = {}
+
+    async def handle_recv(self, transport):
+        data = await transport.recv(self.protocol.message_size)
+
         for message in self.protocol.feed(data):
-            self.handle_message(message)
+            await self.handle_response(message)
 
-    def handle_message(self, message):
+    async def handle_response(self, message):
+        log.debug('handle_response', message=message)
+
         assert isinstance(message, base.Response)
 
-        log.debug('handle_message', message=message)
+        assert message.id in self.request_events
 
-        if message.id in self.futures:
-            # fixme: handle errors
-            self.futures[message.id].set_result(message.result)
-            del self.futures[message.id]
+        event = self.request_events[message.id]
 
-    def resolve_response(self, message_id, future_factory=asyncio.Future):
-        future = future_factory()
-        self.futures[message_id] = future
+        # fixme: handle exceptions
+        self.request_events[message.id] = message.result
 
-        return future
+        event.set()
 
-    def cast(self, method, *args, **kwargs):
+    async def handle_request(self, message):
+        log.debug('handle_request', message=message)
+
+        data = self.protocol.pack(message)
+        await self.transport.sendall(data)
+
+    async def _resolve_request_init(self, message):
+        event = trio.Event()
+        self.request_events[message.id] = event
+
+        return event
+
+    async def _resolve_request_fini(self, message, event):
+        await event.wait()
+        result = self.request_events[message.id]
+        del self.request_events[message.id]
+
+        return result
+
+    async def resolve_request(self, message):
+        assert message.id not in self.request_events
+
+        event = await self._resolve_request_init(message)
+
+        log.debug('resolve_request', sync=event)
+        await self.handle_request(message)
+
+        result = await self._resolve_request_fini(message, event)
+
+        return result
+
+    async def __call__(self):
+        while True:
+            data = await self.handle_recv(self.transport)
+            if not data:
+                log.debug('connection_closed', peername=self.transport.getpeername())
+                return
+
+
+class LibraryClient:
+    def __init__(self, client):
+        self.client = client
+
+    async def cast(self, method, *args, **kwargs):
         message = base.Notification(
             method=method,
             params=args,
             kparams=kwargs
         )
 
-        data = self.protocol.pack(message)
-        self.transport.write(data)
+        await self.client.handle_request(message)
 
     async def call(self, method, *args, **kwargs):
         message = base.Request(
@@ -58,30 +94,25 @@ class ProtocolClient(asyncio.Protocol):
             kparams=kwargs
         )
 
-        data = self.protocol.pack(message)
-
-        future = self.resolve_response(message.id)
-
-        self.transport.write(data)
-
-        return await future
+        return await self.client.resolve_request(message)
 
 
-class ClientFactory:
-    def __init__(self, protocol=ProtocolClient, loop=None):
-        self.loop = loop
-        if not self.loop:
-            self.loop = asyncio.get_event_loop()
+async def connect(client_cb, host, port, *,
+                  library_client_factory=LibraryClient,
+                  client_factory=Client):
 
-        self.protocol = protocol
+    with trio.socket.socket(trio.socket.AF_INET6) as transport:
+        await transport.connect((host, port))
 
-    def connect(self, host, port):
-        client = self.protocol()
+        log.debug('connection_made', peername=transport.getpeername())
 
-        coro = self.loop.create_connection(lambda: client, host, port)
-        # fixme: maybe we don't actually want to do this?
-        self.loop.run_until_complete(coro)
+        client = client_factory(transport)
+        library_client = library_client_factory(client)
 
-        #uri = 'prpc://{host}:{port}'.format(host=host, port=port)
+        async with trio.open_nursery() as nursery:
+            nursery.spawn(client)
+            nursery.spawn(client_cb, library_client)
 
-        return client
+
+def run_client(client_cb, host, port, connect_impl=connect):
+    trio.run(connect_impl, client_cb, host, port)
