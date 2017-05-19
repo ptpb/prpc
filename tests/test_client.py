@@ -32,6 +32,17 @@ test_responses = [
 ]
 
 
+@patch.object(Client, 'handle_response')
+async def test_handle_recv(mock_handle_response, client, transport):
+    transport.messages = [sentinel.first, sentinel.second]
+
+    await client.handle_recv(transport)
+
+    mock_handle_response.assert_has_calls([
+        mock.call(sentinel.first), mock.call(sentinel.second)
+    ])
+
+
 @pytest.mark.parametrize("message", test_responses)
 async def test_handle_response(client, message):
 

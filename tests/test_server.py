@@ -26,9 +26,9 @@ def server(transport, protocol):
 
 async def test_handle_message_request(buf, server, transport, protocol):
 
-    transport.message = base.Request(
-        method=sentinel.method,
-    )
+    transport.messages = [
+        base.Request(method=sentinel.method),
+    ]
 
     await server.handle_recv(transport, protocol)
 
@@ -39,15 +39,15 @@ async def test_handle_message_request(buf, server, transport, protocol):
     assert len(buf) == 1
     assert buf[0].result == sentinel.return_value
     assert buf[0].error is None
-    assert buf[0].id == transport.message.id
+    assert buf[0].id == transport.messages[0].id
     assert isinstance(buf[0], base.Response)
 
 
 async def test_handle_message_notification(buf, server, transport, protocol):
 
-    transport.message = base.Notification(
-        method=sentinel.method
-    )
+    transport.messages = [
+        base.Notification(method=sentinel.method),
+    ]
 
     await server.handle_recv(transport, protocol)
 

@@ -77,7 +77,7 @@ class BaseProtocol(metaclass=ABCMeta):
             BaseMessage: deserialized message
         """
 
-        return [data]  # pragma: nocover
+        return data  # pragma: nocover
 
     @abstractmethod
     def pack(self, message):

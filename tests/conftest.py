@@ -19,12 +19,13 @@ def buf():
 @pytest.fixture
 def transport(buf):
     transport = asynctest.CoroutineMock()
+    transport.messages = []
 
     def write(chunk):
         buf.append(chunk)
 
     def recv(_):
-        return transport.message
+        return transport.messages
 
     transport.sendall.side_effect = write
     transport.recv.side_effect = recv
