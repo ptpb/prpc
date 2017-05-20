@@ -72,6 +72,25 @@ async def test_resolve_request(mock_handle_request, client):
     assert result == sentinel.result
 
 
+@patch.object(Client, 'handle_request')
+async def test_resolve_request_exception(mock_handle_request, client):
+
+    def side_effect(message):
+        client.request_events[message.id].set()
+        client.request_events[message.id] = ValueError('fake_error')
+
+    mock_handle_request.side_effect = side_effect
+
+    message = base.Request()
+
+    with pytest.raises(ValueError) as exc:
+        result = await client.resolve_request(message)
+
+    mock_handle_request.assert_called_once_with(message)
+
+    assert exc.value.args == ('fake_error',)
+
+
 async def test_handle_request(buf, client):
 
     message = base.Request(

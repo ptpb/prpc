@@ -57,7 +57,7 @@ class Client:
         del self.request_events[message.id]
 
         if isinstance(result, BaseException):
-            raise result.__class__(result) from result
+            raise result.__class__(*result.args) from result
 
         return result
 
