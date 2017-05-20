@@ -32,6 +32,13 @@ test_responses = [
 ]
 
 
+@patch.object(Client, 'handle_recv', return_value=None)
+async def test___call___(mock_handle_recv, client, transport):
+    await client()
+
+    mock_handle_recv.assert_called_once_with(transport)
+
+
 @patch.object(Client, 'handle_response')
 async def test_handle_recv(mock_handle_response, client, transport):
     transport.messages = [sentinel.first, sentinel.second]
