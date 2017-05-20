@@ -84,7 +84,7 @@ async def test_resolve_request_exception(mock_handle_request, client):
     message = base.Request()
 
     with pytest.raises(ValueError) as exc:
-        result = await client.resolve_request(message)
+        await client.resolve_request(message)
 
     mock_handle_request.assert_called_once_with(message)
 
