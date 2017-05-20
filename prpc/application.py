@@ -27,7 +27,7 @@ class Application:
 
                 self.rpc_methods[method_name] = descriptor
 
-    def handle_method(self, method_name, *args, **kwargs):
+    async def handle_method(self, method_name, *args, **kwargs):
         descriptor = self.rpc_methods[method_name]
 
-        return descriptor.function(descriptor.service, *args, **kwargs)
+        return await descriptor.function(descriptor.service, *args, **kwargs)

@@ -16,7 +16,7 @@ def protocol():
 
 @pytest.fixture
 def server(transport, protocol):
-    application = mock.Mock()
+    application = mock.CoroutineMock()
     application.handle_method.return_value = sentinel.return_value
 
     server = Server(application, lambda: protocol)

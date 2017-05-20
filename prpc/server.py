@@ -36,7 +36,7 @@ class Server:
     async def handle_message(self, message):
         log.debug('handle_message', message=message)
 
-        result = self.application.handle_method(
+        result = await self.application.handle_method(
             message.method,
             *message.params,
             **message.kparams,

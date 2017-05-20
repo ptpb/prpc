@@ -1,11 +1,11 @@
-from prpc.service import ServiceBase, rpc
+from prpc.service import ServiceBase, rpc, namespace
 from prpc.server import run_app
 from prpc.application import Application
 
 
 class Service(ServiceBase):
     @rpc
-    def foo(self, *args, **kwargs):
+    async def foo(self, *args, **kwargs):
         print('foo called', self, args, kwargs)
 
         return {'my': 'object'}
