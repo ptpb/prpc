@@ -58,7 +58,7 @@ async def test_handle_response(client, message):
 
     await client.handle_response(message)
 
-    event.set.assert_called_once()
+    event.set.assert_called_once_with()
     assert client.request_events[sentinel.id] == (message.result or message.error)
 
 
@@ -117,7 +117,7 @@ async def test_call(mock_resolve_request, library_client):
 
     result = await library_client.call(sentinel.method)
 
-    mock_resolve_request.assert_called_once()
+    assert mock_resolve_request.call_count == 1
     assert isinstance(args.message, base.Request)
     assert args.message.method == sentinel.method
     assert result == sentinel.result
@@ -130,6 +130,6 @@ async def test_cast(mock_handle_request, library_client):
 
     await library_client.cast(sentinel.method)
 
-    mock_handle_request.assert_called_once()
+    assert mock_handle_request.call_count == 1
     assert isinstance(args.message, base.Notification)
     assert args.message.method == sentinel.method
