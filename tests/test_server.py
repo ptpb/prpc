@@ -56,3 +56,24 @@ async def test_handle_message_notification(buf, server, transport, protocol):
     )
 
     assert len(buf) == 0
+
+
+async def test_handle_message_request_exception(buf, server, transport, protocol):
+
+    transport.messages = [
+        base.Request(method=sentinel.method)
+    ]
+
+    server.application.handle_method.side_effect = ValueError('fake_error')
+
+    await server.handle_recv(transport, protocol)
+
+    server.application.handle_method.assert_called_once_with(
+        sentinel.method
+    )
+
+    assert len(buf) == 1
+    assert buf[0].result is None
+    assert isinstance(buf[0].error, ValueError)
+    assert buf[0].error.args == ('fake_error',)
+    assert isinstance(buf[0], base.Response)
